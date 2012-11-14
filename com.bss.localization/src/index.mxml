@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" xmlns:comp="com.bss.localization.view.*"
+	xmlns:control="com.bss.localization.control.*" xmlns:business="com.bss.localization.business.*"
+	backgroundColor="#a5a5a5" applicationComplete="_initMouseWheelSupport(event)">
+
+
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.model.ModelLocator;
+
+			import org.hasseg.externalMouseWheel.ExternalMouseWheelSupport;
+
+			import mx.binding.utils.ChangeWatcher;
+			import mx.events.PropertyChangeEvent;
+
+			private var changeWatcher : ChangeWatcher = ChangeWatcher.watch(ModelLocator.getInstance(), "userLoggedIn", dropLinkBar) ;
+			private var _modelLocator : ModelLocator = ModelLocator.getInstance() ;
+			private var _mwSupport : ExternalMouseWheelSupport = null ;
+
+			// ak: this allows mouse wheel support for entire app.
+			private function _initMouseWheelSupport($evt : Event) : void {
+				_mwSupport = ExternalMouseWheelSupport.getInstance(stage) ;
+			}
+
+			// ak: when an admin logs in, these two views are disabled
+			private function dropLinkBar($evt : PropertyChangeEvent) : void {
+				_modelLocator.currentAdminView = ModelLocator.ADMIN_VIEW_PROJECT ;
+				viewStack.removeChild(loginView) ;
+				viewStack.removeChild(clientView) ;
+
+				linkBar.visible = true ;
+			}
+		]]>
+	</mx:Script>
+
+	<!-- Effects for transition of stacks -->
+	<mx:Fade id="fadeOut" alphaTo="0" duration="400"/>
+	<mx:Fade id="fadeIn" alphaFrom="0" duration="400"/>
+
+	<!-- App Componetns -->
+	<control:Controller id="controller"/>
+	<business:Services id="services"/>
+	<!-- App Componetns -->
+
+	<mx:ToggleButtonBar id="linkBar" dataProvider="viewStack"
+		selectedIndex="{ ModelLocator.getInstance().currentState }"
+		visible="{ ModelLocator.getInstance().showLinkBar }"
+		itemClick="ModelLocator.getInstance().currentAdminView = linkBar.selectedIndex"/>
+
+	<mx:ViewStack id="viewStack" width="100%" height="100%">
+		<comp:Login id="loginView" showEffect="fadeIn" hideEffect="fadeOut"/>
+		<comp:Project id="projectView" label="Project" showEffect="fadeIn"
+			hideEffect="fadeOut"/>
+		<!--		<comp:Users id="usersView" label="Users"  showEffect="fadeIn" hideEffect="fadeOut" />	
+		-->
+		<comp:Label id="labelView" label="Label" showEffect="fadeIn"
+			hideEffect="fadeOut"/>
+		<comp:CopyDeck id="copyView" label="CopyDeck" showEffect="fadeIn"
+			hideEffect="fadeOut"/>
+		<comp:ClientDeck id="clientView" showEffect="fadeIn"
+			hideEffect="fadeOut"/>
+	</mx:ViewStack>
+
+
+</mx:Application>

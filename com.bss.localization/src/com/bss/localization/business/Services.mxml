@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cairngorm:ServiceLocator xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns:cairngorm="com.adobe.cairngorm.business.*">
+
+
+
+	<mx:RemoteObject id="loginService" source="com.bigspaceship.localization.LoginService"
+		destination="amfphp" showBusyCursor="true">
+		<mx:method name="login"/>
+	</mx:RemoteObject>
+
+	<mx:RemoteObject id="projectService" source="com.bigspaceship.localization.ProjectService"
+		destination="amfphp" showBusyCursor="true">
+		<mx:method name="getProjectLang"/>
+		<mx:method name="addLanguage"/>
+		<mx:method name="removeLanguage"/>
+		<mx:method name="createProject"/>
+		<mx:method name="updateProject"/>
+		<mx:method name="deleteProject"/>
+		<mx:method name="selectProject"/>
+	</mx:RemoteObject>
+
+	<mx:RemoteObject id="languageService" source="com.bigspaceship.localization.LanguageService"
+		destination="amfphp" showBusyCursor="true">
+		<mx:method name="getAllLanguage"/>
+		<mx:method name="createLanguage"/>
+	</mx:RemoteObject>
+
+	<mx:RemoteObject id="labelService" source="com.bigspaceship.localization.LabelService"
+		destination="amfphp" showBusyCursor="true">
+		<mx:method name="getAllLabel"/>
+		<mx:method name="getLabelByString"/>
+		<mx:method name="getLabelProject"/>
+		<mx:method name="getLabelPhrase"/>
+		<mx:method name="updateLabel"/>
+		<mx:method name="deleteLabel"/>
+		<mx:method name="createLabel"/>
+		<mx:method name="createLabelPhrase"/>
+		<mx:method name="updatePhrase"/>
+		<mx:method name="getLabelProjectPhraseTrans"/>
+		<mx:method name="addLabelToProject"/>
+		<mx:method name="removeLabelFromProject"/>
+	</mx:RemoteObject>
+
+	<mx:RemoteObject id="labelReportService" source="com.bigspaceship.localization.LabelReportService"
+		destination="amfphp" showBusyCursor="true">
+		<mx:method name="getLabelReport"/>
+	</mx:RemoteObject>
+
+	<!--	<mx:RemoteObject id="copyDeckService" source="com.bigspaceship.localization.CopyDeckService" destination="amfphp" showBusyCursor="true">
+	<mx:method name="getLabelProjectPhraseTrans"/>
+	<mx:method name="createLanguage"/>
+	</mx:RemoteObject>-->
+
+	<mx:RemoteObject id="userService" source="com.bigspaceship.localization.UserService"
+		destination="amfphp" showBusyCursor="true">
+		<mx:method name="getAdmins"/>
+		<mx:method name="getClients"/>
+	</mx:RemoteObject>
+
+</cairngorm:ServiceLocator>

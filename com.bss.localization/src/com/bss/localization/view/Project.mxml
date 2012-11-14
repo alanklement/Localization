@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" height="100%"
+	width="100%" effectEnd="_onEffectEnd()" horizontalAlign="right"
+	verticalAlign="middle">
+
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.events.ProjectEvent;
+			import com.bss.localization.model.ModelLocator;
+			import com.bss.localization.view.popup.CreateLanguagePopUp;
+			import com.bss.localization.view.popup.CreateProjectPopUp;
+			import com.bss.localization.view.popup.UpdateProjectPopUp;
+			import com.bss.localization.vo.ProjectVO;
+
+			import mx.binding.utils.ChangeWatcher;
+			import mx.controls.Alert;
+			import mx.core.IFlexDisplayObject;
+			import mx.events.CloseEvent;
+			import mx.events.PropertyChangeEvent;
+			import mx.managers.PopUpManager;
+
+			private var _modelLocator : ModelLocator = ModelLocator.getInstance() ;
+			private var _projectLanguageWatcher : ChangeWatcher = ChangeWatcher.watch(ModelLocator.getInstance(), "projectLanguage", _projectLanguageLoaded) ;
+
+			private function _onEffectEnd() : void {
+				_modelLocator.userLoggedIn = true ;
+			}
+
+			private function _onSelectProject($evt : Event) : void {
+				langTile.enabled = true ;
+				_modelLocator.selectedProject = ProjectVO(DataGrid($evt.target).selectedItem) ;
+
+				var projectEvent : ProjectEvent = new ProjectEvent(ProjectEvent.GET_PROJECT_LANGUAGE, _modelLocator.selectedProject) ;
+				projectEvent.dispatch() ;
+			}
+
+			// ak: this unchecks all languages then checks project's languages.
+			private function _projectLanguageLoaded($evt : PropertyChangeEvent) : void {
+				var i : uint = 0 ;
+				var l : uint = langRepeater.dataProvider.length ;
+
+				var ii : uint = 0 ;
+				var ll : uint = _modelLocator.projectLanguage.length ;
+
+				for ( i ; i < l ; i++ ) {
+					checkBoxID[ i ].selected = false ;
+				}
+
+				for ( ii ; ii < ll ; ii++ ) {
+					var iii : uint = 0 ;
+					var lll : uint = _modelLocator.allLanguages.length ;
+
+					for ( iii ; iii < lll ; iii++) {
+						if ( _modelLocator.projectLanguage[ii].language_eng_name == checkBoxID[iii].label ) {
+							checkBoxID[iii].selected = true ;
+						}
+					}
+				}
+			}
+
+			private function _onConfirmDeleteProject($evt : CloseEvent) : void {
+				if ( $evt.detail == Alert.YES ) {
+					_modelLocator.selectedProjectIndex = projectsDG.selectedIndex ;
+
+					var projectEvent : ProjectEvent = new ProjectEvent(ProjectEvent.DELETE_PROJECT, ProjectVO(projectsDG.selectedItem)) ;
+					projectEvent.dispatch() ;
+				}
+
+				var i : uint = 0 ;
+				var l : uint = langRepeater.dataProvider.length ;
+
+				for ( i ; i < l ; i++ ) {
+					checkBoxID[ i ].selected = false ;
+				}
+
+				ModelLocator.getInstance().selectedProject = null ;
+			}
+
+			private function _selectLanguage($evt : MouseEvent) : void {
+				var selectedCheckBox : Object = $evt.target.getRepeaterItem() ;
+
+				_modelLocator.selectedProject.project_language = selectedCheckBox.language_id ;
+
+				if ( $evt.target.selected ) {
+					_modelLocator.projectLanguage.addItem(selectedCheckBox) ;
+
+					var projectEvent1 : ProjectEvent = new ProjectEvent(ProjectEvent.ADD_LANGUAGE, _modelLocator.selectedProject) ;
+					projectEvent1.dispatch() ;
+				} else {
+					var projectEvent : ProjectEvent = new ProjectEvent(ProjectEvent.REMOVE_LANGUAGE, ProjectVO(_modelLocator.selectedProject)) ;
+					projectEvent.dispatch() ;
+
+					var i : uint = 0 ;
+					var l : uint = _modelLocator.projectLanguage.length ;
+
+					for ( i ; i < l ; i++ ) {
+						if ( _modelLocator.projectLanguage[ i ].language_eng_name == selectedCheckBox.language_eng_name ) {
+							_modelLocator.projectLanguage.removeItemAt(i) ;
+							return ;
+						}
+					}
+				}
+			}
+		]]>
+	</mx:Script>
+
+	<mx:HBox height="95%" width="100%">
+		<mx:Panel height="100%" width="50%" title="{ModelLocator.getInstance().projects.length} Projects">
+			<mx:DataGrid height="100%" width="100%" id="projectsDG"
+				dataProvider="{ ModelLocator.getInstance().projects }"
+				change="_onSelectProject(event)">
+				<mx:columns>
+					<mx:DataGridColumn headerText="Code" dataField="project_code"/>
+					<mx:DataGridColumn headerText="Project" dataField="project_name"/>
+				</mx:columns>
+			</mx:DataGrid>
+			<mx:ControlBar>
+				<mx:Button label="New Project" click="var popUpProject : IFlexDisplayObject = PopUpManager.createPopUp(this, CreateProjectPopUp, true);PopUpManager.centerPopUp(popUpProject)"/>
+				<mx:Button label="Delete Project" click=" var confirmDelete : Alert = Alert.show('Confirm Delete Project', null, Alert.YES | Alert.NO, this, _onConfirmDeleteProject)"/>
+			</mx:ControlBar>
+		</mx:Panel>
+
+		<mx:VBox height="100%" width="50%">
+			<mx:Panel height="60%" width="100%" title="Details">
+				<mx:Form id="projectForm" width="100%" height="100%"
+					textAlign="left">
+					<mx:FormItem label="Name:">
+						<mx:Label id="project_name" text="{ ModelLocator.getInstance().selectedProject.project_name }"/>
+					</mx:FormItem>
+					<mx:FormItem label="Code:">
+						<mx:Label id="project_code" text="{ ModelLocator.getInstance().selectedProject.project_code }"/>
+					</mx:FormItem>
+					<mx:FormItem label="Created:" color="#0B333C">
+						<mx:Text id="project_created" text="{ ModelLocator.getInstance().selectedProject.project_created }"/>
+					</mx:FormItem>
+					<mx:FormItem label="Edited:">
+						<mx:Text id="project_edited" text="{ ModelLocator.getInstance().selectedProject.project_edited }"/>
+					</mx:FormItem>
+					<mx:FormItem label="Notes:" width="100%" height="100%">
+						<mx:TextArea id="project_notes" width="100%"
+							height="100%" text="{ ModelLocator.getInstance().selectedProject.project_notes }"
+							editable="false" borderThickness="0"/>
+					</mx:FormItem>
+				</mx:Form>
+				<mx:ControlBar>
+					<mx:Button label="Edit" click="var popUpProject : IFlexDisplayObject = PopUpManager.createPopUp(this, UpdateProjectPopUp, true) ;PopUpManager.centerPopUp(popUpProject)"/>
+				</mx:ControlBar>
+			</mx:Panel>
+
+			<mx:Panel height="40%" width="100%" title="Availlable Languages">
+				<mx:Tile id="langTile" height="100%" horizontalGap="5"
+					width="100%" paddingLeft="15" paddingRight="15"
+					paddingTop="15" enabled="false">
+					<mx:Repeater id="langRepeater" dataProvider="{ ModelLocator.getInstance().allLanguages }">
+						<mx:HBox horizontalAlign="center">
+							<mx:CheckBox id="checkBoxID" label="{ langRepeater.currentItem.language_eng_name }"
+								click="_selectLanguage(event)"/>
+						</mx:HBox>
+					</mx:Repeater>
+				</mx:Tile>
+
+				<mx:ControlBar>
+					<mx:Button label="New Language" click="var popUpLanguage : IFlexDisplayObject = PopUpManager.createPopUp(this, CreateLanguagePopUp, true);PopUpManager.centerPopUp(popUpLanguage)"/>
+					<mx:Spacer width="100%"/>
+					<mx:Button label="?" id="infoBtn"/>
+				</mx:ControlBar>
+			</mx:Panel>
+		</mx:VBox>
+	</mx:HBox>
+</mx:VBox>

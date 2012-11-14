@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%"
+	show="_onShow()"
+	hide="_onHide()">   	
+	
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.utils.ExportUtils;
+			import com.bss.localization.vo.LanguageVO;
+			import com.bss.localization.vo.PhraseVO;
+			import mx.core.IFlexDisplayObject ;
+			import mx.managers.FocusManager ;
+			import mx.events.DataGridEvent ;
+			import mx.events.FlexEvent ;
+			import mx.events.PropertyChangeEvent ;
+			import mx.binding.utils.ChangeWatcher ;
+			import mx.collections.ArrayCollection ;
+			import mx.collections.Sort ;
+			import mx.collections.SortField ;
+			import mx.controls.Alert ;
+			import mx.controls.ToolTip ;
+			import mx.managers.ToolTipManager ;
+			import mx.managers.PopUpManager ;
+			
+			import com.bss.localization.events.ProjectEvent ;
+			import com.bss.localization.events.LabelEvent ;
+			import com.bss.localization.vo.ProjectVO ;
+			import com.bss.localization.vo.LabelVO ;
+			import com.bss.localization.model.ModelLocator ;
+			import com.bss.localization.view.popup.UpdatePhrasePopUp ;
+
+			[Bindable]
+			private var _localLangList		: ArrayCollection 	= 	new ArrayCollection() ;
+			[Bindable]
+			private var _selectedProject	: ProjectVO ;			
+
+			public var gridEditable			: Boolean			=	true; 
+						
+			private var _modelLocator		: ModelLocator 		= 	ModelLocator.getInstance() ;
+			
+			private var _fileRef			: FileReference 	= 	new FileReference() ;
+
+			private function _onShow():void
+			{
+				
+				//_modelLocator.copyDeckVisible = true ;				
+				if ( projectCB.selectedItem != null )
+				{
+					_selectedProject = ProjectVO( projectCB.selectedItem ) ;
+					var projectEvent:ProjectEvent = new ProjectEvent( ProjectEvent.GET_PROJECT_LANGUAGE, _selectedProject  ) ;
+					projectEvent.dispatch () ;	
+				}
+
+				ToolTipManager.showDelay 	= 	2000 ;
+				ToolTipManager.showEffect 	= 	fadeIn ;
+				ToolTipManager.scrubDelay	=	.5 ;
+				
+				var sortLanguages:Sort = new Sort() ;
+				sortLanguages.fields = [ new SortField ( "language_eng_name" , true ) ] ;
+				
+				_modelLocator.projectLanguage.sort = sortLanguages ;
+				_modelLocator.projectLanguage.refresh() ;
+			}
+			
+			private function _onHide():void
+			{
+				phraseGrid.dataProvider = null ;
+				projectLangCB.selectedIndex = -1 ;
+			}
+			
+			private function _onSelectPhrase():void
+			{			
+				_modelLocator.selectedPhrase = phraseGrid.selectedItem as PhraseVO ;
+			}		
+			
+			public function _onSelectLanguage():void
+			{	
+				copyToSystem.enabled 	= 	true ;
+				exportCD.enabled 		= 	true ;
+				exportXML.enabled		=	true ;
+			
+				if( projectLangCB.selectedItem.language_eng_name == "English" ){ _modelLocator.gridEditable = false ; } else { _modelLocator.gridEditable = true ; }
+			
+				_modelLocator.selectedLanguage = projectLangCB.selectedItem as LanguageVO ;
+				
+				projectLangCB.selectedItem.language_code ;
+
+				var labelEvent:LabelEvent = new LabelEvent( LabelEvent.GET_LABEL_PROJECT_PHRASE_TRANS, projectCB.selectedItem.project_id, projectLangCB.selectedItem.language_id ) ;
+				labelEvent.dispatch() ;				
+			}
+        
+			private function translationToolTip( item:Object ):String
+			{  
+				var myString:String = "" ; 	 
+				if( item != null ) {  myString = item.phrase_translation ;}
+				return myString ; 
+			}
+			
+			private function originalToolTip( item:Object ):String
+			{  
+				var myString:String = "" ; 
+				if( item != null ) { myString = item.phrase_original ; }
+				return myString ; 
+			}
+			
+			
+			public function onClick():void
+			{
+				if ( _modelLocator.selectedLanguage == null )
+				{
+					Alert.show( "Please Select a Language" )
+					return ;
+				}
+				else
+				{
+					var popUp:IFlexDisplayObject = PopUpManager.createPopUp( this.parent, UpdatePhrasePopUp,true ) ;
+					PopUpManager.centerPopUp( popUp ) ;
+				}																										
+			}
+			
+			private function _onProjectCBChange():void
+			{				
+				_modelLocator.selectedCopyDeckProject = ProjectVO( projectCB.selectedItem ) ;
+		
+				_selectedProject = ProjectVO( projectCB.selectedItem ) ;
+				var projectEvent:ProjectEvent = new ProjectEvent( ProjectEvent.GET_PROJECT_LANGUAGE, _selectedProject  ) ;
+				projectEvent.dispatch () ;				
+			}
+			
+			
+			private function copyToClipBoard($evt:MouseEvent):void
+			{
+				ExportUtils.saveToClipBoard( _modelLocator.returnedPhraseProjectLang ) ;               
+			}
+			
+			private function exportAsCSV( $evt:MouseEvent ):void
+	        {
+//	        	ExportUtils.exportAdminCSV( projectLangCB.selectedItem.language_code ) ;
+	            var TSVString:String = "";
+				
+				TSVString	+=	"Label" 		+ ",";
+	            TSVString 	+= 	"English" 		+ ","; 
+	            TSVString 	+= 	"Limit" 		+ ","; 
+	            TSVString 	+= 	"Translation" 	+ ","; 
+	            TSVString 	+= 	"Edited" 		+ ","; 
+	            
+	            TSVString += "," + "," + "," + "," + "," + "\n" + "\n" ;
+
+	      	  	for each ( var phraseVO:PhraseVO in ModelLocator.getInstance().returnedPhraseProjectLang )   					
+	            {
+					TSVString 	+= 		'"'	 +	phraseVO.label_name  							+ '"'	+ ",";
+					TSVString 	+=		'"'  + 	phraseVO.phrase_original						+ '"'  	+ ",";
+	                TSVString 	+= 		'"'	 +	phraseVO.label_char_limit						+ '"'	+ ",";
+	                
+	                if (phraseVO.phrase_translation == null)
+	                {
+	                	TSVString +=  '"' + " - " + '"'  + "," ;
+	                }
+	                else
+	                {
+	                	TSVString += '"' + phraseVO.phrase_translation + '"' + "," ;
+	                }
+	                
+	                if ( phraseVO.phrase_edited == null )
+	                {
+	                	 TSVString +=  " - "  + "\n" ;
+	                }
+	                else
+	                {
+	                	  TSVString +=  phraseVO.phrase_edited  + "\n" ; 
+	                } 
+	              
+	            }
+
+				var v:URLVariables 		= new URLVariables() ;
+					v.projectCode 		= _modelLocator.selectedCopyDeckProject.project_code ;
+					v.languageCode 		= projectLangCB.selectedItem.language_code ;
+					v.tsvString 		= TSVString ;
+
+				var request:URLRequest 	= new URLRequest( ModelLocator.EXPORT_SERVICE_URL ) ;
+					request.method 		= URLRequestMethod.POST ;
+					request.data		= v ;
+					
+				_fileRef.download( request,v.projectCode + "_" + v.languageCode  + ".csv" ) ;
+	        }
+	        
+			private function exportAsXML( $evt:MouseEvent ):void
+			{
+			    var xml:XML = <strings lang		=	"" /> ;
+			    var defaultStringNode:XML 		= 	<string id="" /> ;
+			
+				var cdataHeaderHack:Array 		= 	[ "<!","[CDATA","["	] ;
+				var cdataFooterHack:Array 		= 	[ "]","]",">" 		] ;
+				
+				var cdataheader:String 			= 	cdataHeaderHack.join("") ;
+				var cdatafooter:String 			= 	cdataFooterHack.join("") ;
+				
+				var tabedWhiteSpace:String		=	"			" ;
+							
+			    for each ( var phraseVO:PhraseVO in ModelLocator.getInstance().returnedPhraseProjectLang )
+			    {
+			        var stringNode:XML = defaultStringNode.copy() ;
+			            stringNode.@id = phraseVO.label_name ;
+			            stringNode.appendChild ( tabedWhiteSpace + cdataheader + ( phraseVO.phrase_translation != null ? phraseVO.phrase_translation : "" ) + cdatafooter ) ;
+			        xml.appendChild(stringNode) ;
+			    }
+
+			    xml.@lang = projectLangCB.selectedItem.language_code.toLowerCase() ;
+			
+			    var v:URLVariables = new URLVariables() ;
+			        v.projectCode = _modelLocator.selectedCopyDeckProject.project_code ;
+			        v.languageCode = projectLangCB.selectedItem.language_code ;
+			        v.tsvString = '<?xml version="1.0" encoding="utf-8"?>\n' + xml.toXMLString() ;
+			
+			    var request:URLRequest = new URLRequest ( ModelLocator.EXPORT_SERVICE_URL ) ;
+			        request.method = URLRequestMethod.POST ;
+			        request.data = v ;
+			
+			    _fileRef.download ( request,v.projectCode + "_" + v.languageCode  + ".xml" ) ;
+			}
+
+					        
+		]]>
+	</mx:Script>
+	 	
+	<mx:Fade id="fadeOut" alphaTo="0" duration="250" />
+	<mx:Fade id="fadeIn" alphaFrom="0" duration="250"/>
+	
+	<mx:HBox height="10%" width="100%" horizontalAlign="center" verticalAlign="middle">
+			<mx:HBox height="100%" width="33.33%" horizontalAlign="left" verticalAlign="middle">
+					<!--<mx:Text id="selectedProjectTitle" fontSize="18" text="{ ModelLocator.getInstance().selectedProject.project_name }"/>-->
+					<mx:Label text="Project: " fontSize="12" />
+					<mx:ComboBox id="projectCB" dataProvider="{ModelLocator.getInstance().projects}" change="_onProjectCBChange()" labelField="project_name" prompt="Project..." />
+			</mx:HBox>
+			<mx:HBox height="100%" width="33.33%" horizontalAlign="center" verticalAlign="middle" >
+				<mx:Text text="Language:" fontSize="12"/>
+				<mx:ComboBox id="projectLangCB" labelField="language_eng_name" rowCount="7" change="_onSelectLanguage()" prompt="Pick a Language..." dataProvider="{ModelLocator.getInstance().copyDeckProjectLang}"/>
+			</mx:HBox>
+			<mx:HBox height="100%" width="33.33%" horizontalAlign="right" verticalAlign="middle">
+				<mx:Text id="lastEditedTxt" fontSize="12" />
+			</mx:HBox>	
+	</mx:HBox>
+	<mx:Panel height="90%" width="100%">
+			
+	<mx:DataGrid id="phraseGrid" height="100%" width="100%"
+			editable="false" dataProvider="{ ModelLocator.getInstance().returnedPhraseProjectLang }" change="_onSelectPhrase()" wordWrap="false" rowHeight="28">  
+			<mx:columns>
+				<mx:DataGridColumn headerText="Label" dataField="label_name" draggable="false" width="150" resizable="false"/>
+				<mx:DataGridColumn headerText="English" dataField="phrase_original" width="300" showDataTips="true"  dataTipFunction="originalToolTip" draggable="false"/>
+				<mx:DataGridColumn headerText="Limit" width="50" textAlign="center" sortable="false" resizable="false" draggable="false" dataField="label_char_limit" />
+				<mx:DataGridColumn id="currentLimit" headerText="Current" width="50" textAlign="left" sortable="false" resizable="false" draggable="false" itemRenderer="com.bss.localization.view.IR.CharLimitIR"/>								
+				<mx:DataGridColumn id="translation" headerText="Translation" width="300" showDataTips="true" dataField="phrase_translation" dataTipFunction="translationToolTip" draggable="false" wordWrap="false" resizable="false"/> 
+				<mx:DataGridColumn id="lastEdited" headerText="Edited" dataField="phrase_edited" width="150"  draggable="false"/>
+				<mx:DataGridColumn width="55" sortable="false" resizable="false" draggable="false" itemRenderer="com.bss.localization.view.IR.EditableBtnIR"/>
+
+			</mx:columns>
+	</mx:DataGrid>
+	<mx:ControlBar>
+		<mx:Button id="exportCD"  label="Export to CSV" 	click="exportAsCSV ( event ) " enabled="false" toolTip="Export this language copydeck into tab-delimited text file."/>
+		<mx:Button id="copyToSystem"  label="Copy To Clipboard" click="copyToClipBoard ( event ) " enabled="false" toolTip="This will export the data into a format that can be directly pasted into Excel"/>
+		<mx:Button  id="exportXML" label="Export to XML" 	click="exportAsXML ( event ) " enabled="false" toolTip="Export this language copydeck into XML."/>
+		<mx:Spacer width="100%"/>
+		<mx:Button label="?"/>
+	</mx:ControlBar>
+	</mx:Panel>
+</mx:VBox>
+
+
+
+

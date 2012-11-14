@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%"  initialize="init()">
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.utils.ExportUtils;
+			import com.bss.localization.vo.LanguageVO;
+			import com.bss.localization.vo.PhraseVO;
+			import mx.collections.ArrayCollection ;
+			import mx.collections.SortField ;
+			import mx.collections.Sort ;
+			import mx.managers.ToolTipManager ;
+			import mx.events.PropertyChangeEvent ;
+			import mx.binding.utils.ChangeWatcher ;
+			import mx.controls.Alert ;
+			import mx.managers.PopUpManager ;
+			import mx.core.IFlexDisplayObject ;
+			
+			import com.bss.localization.events.LabelEvent ;
+			import com.bss.localization.model.ModelLocator ;
+			import com.bss.localization.view.popup.UpdatePhrasePopUp ;
+			import com.bss.localization.vo.LabelVO ;
+			import com.bss.localization.events.ProjectEvent ;
+					
+			private var _modelLocator:ModelLocator 	= 	ModelLocator.getInstance() ;			
+			private var _fileRef:FileReference = new FileReference() ;			
+			public var gridEditable:Boolean				=	true ; 
+			
+			private function init():void
+			{	
+				Alert.show("             Welcome " + ModelLocator.getInstance().currentUser + "\n\nTo begin please choose a language" ) ;
+			
+			
+				ToolTipManager.showDelay 	= 	2000 ;
+				ToolTipManager.showEffect 	= 	fadeIn ;
+				ToolTipManager.scrubDelay	=	.5 ;
+			
+			}
+			
+			private function _onSelectPhrase():void
+			{
+				_modelLocator.selectedPhrase = phraseGrid.selectedItem as PhraseVO ;
+			}		
+			
+			public function _onSelectLanguage():void
+			{
+				_modelLocator.gridEditable = true ;
+				exportCD.enabled = true ;
+				copyCB.enabled = true ;
+				_modelLocator.selectedClientLanguage = projectLangCB.selectedItem as LanguageVO ;
+				var labelEvent:LabelEvent = new LabelEvent(LabelEvent.GET_LABEL_PROJECT_PHRASE_TRANS, _modelLocator.clientProject.project_id, projectLangCB.selectedItem.language_id) ;
+				labelEvent.dispatch() ;
+			}
+
+	        
+			private function translationToolTip ( item:Object ):String
+			{  
+				var myString:String = "" ; 
+					 
+				if( item != null )  
+				{  
+					myString = item.phrase_translation ;
+				}
+					
+				return myString ; 
+			}
+			
+			private function originalToolTip ( item:Object ):String
+			{  
+				var myString:String = "" ; 
+					 
+				if ( item != null )  
+				{  
+					myString = item.phrase_original ;	
+				}
+					
+				return myString ; 
+			}
+			
+			
+			public function onClick():void
+			{
+				if ( _modelLocator.selectedClientLanguage == null )
+				{
+					Alert.show ( "Please Select a Language" ) ;
+					return ;
+				}
+				
+				var popUp:IFlexDisplayObject = PopUpManager.createPopUp ( this.parent, UpdatePhrasePopUp,true ) ;
+																						
+				PopUpManager.centerPopUp ( popUp ) ;
+			}
+			
+			private function _copyToClipBoard($evt:MouseEvent):void
+			{
+				ExportUtils.saveToClipBoard( _modelLocator.clientReturnedPhrases ) ;               
+			}
+			
+			private function exportAsTSV( $evt:MouseEvent ):void
+	        {
+	            var TSVString:String = "" ;
+				
+				TSVString	+=	"Label" 		+ "," ;
+	            TSVString 	+= 	"English" 		+ "," ; 
+	            TSVString 	+= 	"Limit" 		+ "," ; 
+	            TSVString 	+= 	"Translation" 	+ "," ; 
+	            TSVString 	+= 	"Edited" 		+ "," ; 
+	            
+	            TSVString += "," + "," + "," + "," + "," + "\n" + "\n" ;
+
+	      	  	for each( var phraseVO:PhraseVO in ModelLocator.getInstance().clientReturnedPhrases )   					
+	            {
+					TSVString 	+= 		'"'	 +	phraseVO.label_name  							+ '"'	+ "," ;
+					TSVString 	+=		'"'  + 	phraseVO.phrase_original						+ '"'  	+ "," ;
+	                TSVString 	+= 		'"'	 +	phraseVO.label_char_limit						+ '"'	+ "," ;
+	                
+	                if( phraseVO.phrase_translation == null )
+	                {
+	                	TSVString +=  '"' + " - " + '"'  + "," ;
+	                }
+	                else
+	                {
+	                	TSVString += '"' + phraseVO.phrase_translation + '"' + "," ;
+	                }
+	                
+	                if( phraseVO.phrase_edited == null )
+	                {
+	                	TSVString +=  " - "  + "\n" ;
+	                }
+	                else
+	                {
+	                	TSVString +=  phraseVO.phrase_edited  + "\n" ; 
+	                }              
+	            }
+
+				var v:URLVariables 		= new URLVariables() ;
+					v.projectCode 		= _modelLocator.clientProject.project_code ;
+					v.languageCode 		= projectLangCB.selectedItem.language_code ;
+					v.tsvString 		= TSVString ;
+
+				var request:URLRequest 	= new URLRequest( ModelLocator.EXPORT_SERVICE_URL ) ;
+					request.method 		= URLRequestMethod.POST ;
+					request.data		= v ;
+					
+				_fileRef.download( request,v.projectCode + "_" + v.languageCode  + ".csv" ) ;
+	        }
+		]]>
+	</mx:Script>
+
+	<mx:Fade id="fadeOut" alphaTo="0" duration="250" />
+	<mx:Fade id="fadeIn" alphaFrom="0" duration="250"/>
+	
+	<mx:HBox height="10%" width="100%" horizontalAlign="center" verticalAlign="middle">
+			<mx:HBox height="100%" width="33.33%" horizontalAlign="left" verticalAlign="middle">
+					<mx:Text id="selectedProjectTitle" fontSize="18" text="{ ModelLocator.getInstance().clientProject.project_name }"/>					
+			</mx:HBox>
+			<mx:HBox height="100%" width="33.33%" horizontalAlign="center" verticalAlign="middle" >
+				<mx:Text text="Language:" fontSize="12"/>
+				<mx:ComboBox id="projectLangCB" labelField="language_eng_name" rowCount="7" change="_onSelectLanguage()" prompt="Pick a Language..." dataProvider="{ModelLocator.getInstance().clientLanguages}"/>
+			</mx:HBox>
+			<mx:HBox height="100%" width="33.33%" horizontalAlign="right" verticalAlign="middle">
+				<mx:Text id="lastEditedTxt" fontSize="12" />
+			</mx:HBox>	
+	</mx:HBox>
+	<mx:Panel height="90%" width="100%">
+		
+	<mx:DataGrid id="phraseGrid" height="100%" width="100%"
+			editable="false" dataProvider="{ ModelLocator.getInstance().clientReturnedPhrases }" change="_onSelectPhrase()" rowHeight="28">  
+			<mx:columns>
+				<mx:DataGridColumn headerText="Label" dataField="label_name" draggable="false" width="150" resizable="false"/>
+				<mx:DataGridColumn headerText="English" dataField="phrase_original" width="300" showDataTips="true"  dataTipFunction="originalToolTip" draggable="false"/>
+				<mx:DataGridColumn headerText="Limit" width="50" textAlign="center" sortable="false" resizable="false" draggable="false" dataField="label_char_limit" />
+				<mx:DataGridColumn id="currentLimit" headerText="Current" width="50" textAlign="left" sortable="false" resizable="false" draggable="false" itemRenderer="com.bss.localization.view.IR.CharLimitIR"/>								
+				<mx:DataGridColumn id="translation" headerText="Translation" dataField="phrase_translation" width="300" showDataTips="true" dataTipFunction="translationToolTip" draggable="false"/> 	
+				<mx:DataGridColumn id="lastEdited" headerText="Edited" dataField="phrase_edited" width="150"  draggable="false"/>
+				<mx:DataGridColumn width="55" sortable="false" resizable="false" draggable="false" itemRenderer="com.bss.localization.view.IR.EditableBtnIR"/>
+			</mx:columns>
+	</mx:DataGrid>
+	<mx:ControlBar>
+		<mx:Button id="exportCD" label="Export to Text" click="exportAsTSV ( event )" enabled="false" toolTip="Export this language copydeck into comma-delimited text file."/>
+		<mx:Button id="copyCB" 	label="Copy to System Clipboard" click="_copyToClipBoard ( event )" enabled="false" toolTip="Export this language copydeck into Exel readable HTML."/>
+		<mx:Spacer width="100%"/>
+		<mx:Button label="?"/>
+	</mx:ControlBar>
+	</mx:Panel>
+</mx:VBox>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

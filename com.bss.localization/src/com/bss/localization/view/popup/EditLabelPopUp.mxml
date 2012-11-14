@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" width="500" height="350" 
+	textAlign="center" horizontalAlign="center" verticalAlign="middle">
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.events.LabelEvent;
+			import com.bss.localization.model.ModelLocator;
+			import com.bss.localization.vo.LabelVO;
+
+			import mx.controls.Alert;
+			import mx.managers.PopUpManager;
+		
+			[Bindable]
+			private var _modelLocator:ModelLocator = ModelLocator.getInstance ();
+				
+			private function updateLabel ( $evt:MouseEvent ):void
+			{	
+				
+				if( labelInput.text.length == 0 || phraseInput.text.length == 0 )
+				{
+					Alert.show( "Enter info for XML Label and Phrase" )
+					return
+				}
+				else
+				{
+					var labelVO:LabelVO 		= 	new LabelVO ();
+					labelVO.label_id			= 	_modelLocator.selectedLabel.label_id;
+					labelVO.label_name 			= 	labelInput.text;
+					labelVO.label_char_limit 	= 	Number( charLimitInput.text );     
+					labelVO.phrase_original 	= 	escape( phraseInput.text );
+					labelVO.edited_by			=	_modelLocator.currentUser;
+					
+					var labelEvent:LabelEvent = new LabelEvent( LabelEvent.UPDATE_LABEL, 0, 0, labelVO );
+					
+					labelEvent.dispatch();
+					
+					ModelLocator.getInstance().selectedLabel.label_char_limit 		= Number ( charLimitInput.text );
+					ModelLocator.getInstance().selectedLabel.label_name 			= labelInput.text;
+					ModelLocator.getInstance().selectedLabel.phrase_original 		= phraseInput.text;
+				}
+				
+				PopUpManager.removePopUp(this)	 	
+			}
+			
+		]]>
+	</mx:Script>	
+	<mx:ControlBar>
+		<mx:Label text="Create or Edit a Translation" fontWeight="bold"/>
+	</mx:ControlBar>
+	<mx:Form textAlign="left" height="100%" width="100%">
+		<mx:FormItem label="XML Label:">
+			<mx:TextInput id="labelInput" text="{ _modelLocator.selectedLabel.label_name }"/>
+		</mx:FormItem>
+		<mx:FormItem label="Character Limit:">
+			<mx:TextInput id="charLimitInput" text="{ _modelLocator.selectedLabel.label_char_limit }"/>
+		</mx:FormItem>
+		<mx:FormItem label="Current Count:">
+			<mx:Label text="{ phraseInput.text.length }"/>
+		</mx:FormItem>
+		<mx:FormItem label="Phrase:" height="50%" width="100%">
+			<mx:TextArea id="phraseInput" width="100%" height="100%" text="{ _modelLocator.selectedLabel.phrase_original }"/>
+		</mx:FormItem>
+		<mx:FormItem label="Original: ">
+			<mx:HBox>
+				<mx:ComboBox id="languageID" prompt="Language..." labelField="eng_name" dataProvider="{ _modelLocator.allLanguages }" enabled="false"/>
+			</mx:HBox>
+		</mx:FormItem>
+		<mx:FormItem label="Add To Project: ">
+				<mx:ComboBox id="projectID" labelField="name" dataProvider="{ _modelLocator.projects }" prompt="All Projects" enabled="false"/>
+		</mx:FormItem>
+	</mx:Form>
+	
+	<mx:ControlBar verticalAlign="middle" horizontalAlign="center"  horizontalGap="20">	
+		<mx:Button label="Update" click="updateLabel ( event )"/>
+		<mx:Button label="Cancel" click="PopUpManager.removePopUp ( this ) " />
+	</mx:ControlBar>
+		
+</mx:Panel>

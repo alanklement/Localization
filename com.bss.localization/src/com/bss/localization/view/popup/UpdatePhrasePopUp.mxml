@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml" width="500" height="450" creationComplete="_onInit()" >
+
+<mx:Script>
+		<![CDATA[
+			import com.bss.localization.events.LabelEvent;
+			import com.bss.localization.model.ModelLocator;
+			import com.bss.localization.vo.LabelVO;
+
+			import mx.controls.Alert;
+			import mx.managers.PopUpManager;
+		
+		private var _modelLocator:ModelLocator = ModelLocator.getInstance() ;
+		
+		private var createPhrase:Boolean = false ;
+		
+		private function _onInit():void
+		{			
+			if( _modelLocator.selectedPhrase.phrase_translation == null )
+			{
+				createPhrase = true ;
+				btn.label = 'Create Translation' ;	
+			}
+			else
+			{
+				createPhrase = false ;
+				btn.label = 'Update Translation' ;
+			}
+		}
+		
+
+		private function _addPhrase($evt:Event):void
+		{		
+			if( phraseInput.text.length == 0 )
+			{
+				Alert.show( "Please Enter a Translation" ) ;
+				return ;
+			}
+			
+			if( phraseInput.text == _modelLocator.selectedPhrase.phrase_translation )
+			{
+				Alert.show("Please Enter a New Translation or Cancel") ;
+				return ;
+			}
+			
+			if( createPhrase )
+			{
+				var newLabel:LabelVO = new LabelVO() ;
+				
+				newLabel.phrase_translation_id 		= 	Number(_modelLocator.selectedLanguage.language_id);
+				newLabel.phrase_translation 		= 	escape(phraseInput.text);
+								
+				newLabel.label_id					= 	_modelLocator.selectedPhrase.label_id;
+				newLabel.project_id					=	_modelLocator.selectedCopyDeckProject.project_id
+				newLabel.edited_by					=	_modelLocator.currentUser;
+				
+				var labelEvent:LabelEvent = new LabelEvent(LabelEvent.CREATE_LABEL_PHRASE, 0, 0, newLabel);
+				labelEvent.dispatch();
+				
+				_modelLocator.selectedPhrase.phrase_translation = phraseInput.text;
+			}
+			
+			if(!createPhrase)
+			{
+				var updateLabel:LabelVO = new LabelVO();
+				
+				updateLabel.phrase_translation_id 		= 	Number(_modelLocator.selectedPhrase.phrase_translation_id);
+				updateLabel.phrase_translation 			= 	escape(phraseInput.text);
+				updateLabel.edited_by					=	_modelLocator.currentUser;
+				updateLabel.label_id					=	_modelLocator.selectedPhrase.label_id;		
+				
+				var labelEvnet2:LabelEvent = new LabelEvent(LabelEvent.UPDATE_LABEL_PHRASE,0,0, updateLabel)
+				labelEvnet2.dispatch();
+				
+				_modelLocator.selectedPhrase.phrase_translation = phraseInput.text;
+			}
+			
+			PopUpManager.removePopUp(this) ;
+		}
+		
+		private function checkCount():void
+		{
+			if(phraseInput.text.length + 1  > _modelLocator.selectedPhrase.label_char_limit)
+			{
+				currentLimit.setStyle("color", 'red')
+				validator.visible = true
+			}
+			else
+			{
+				currentLimit.setStyle("color", 0x000000)
+				validator.visible = false
+			}
+		}	
+	]]>
+</mx:Script>
+	
+	<mx:Form textAlign="left" height="100%" width="100%">
+		<mx:FormItem label="Phrase:" height="50%" width="100%">
+			<mx:TextArea id="original" width="100%" height="100%" editable="false" text="{ ModelLocator.getInstance().selectedPhrase.phrase_original }"  borderThickness="0" selectable="false"/>
+		</mx:FormItem>
+		<mx:FormItem label="Character Limit:">
+			<mx:Label id="charLimit" text="{ ModelLocator.getInstance().selectedPhrase.label_char_limit.toString() }"/>
+		</mx:FormItem>
+		<mx:FormItem label="Current Count:">
+			<mx:Label id="currentLimit" text="{phraseInput.text.length}"/>
+			<mx:Text id="validator" text="A phrase over { ModelLocator.getInstance().selectedPhrase.label_char_limit } characers may be cut off when published" visible="false" color="Red"/>
+		</mx:FormItem>
+		<mx:FormItem label="Translation:" height="50%" width="100%">
+			<mx:TextArea id="phraseInput" width="100%" height="100%" keyUp="checkCount()" text="{ ModelLocator.getInstance().selectedPhrase.phrase_translation }"/>
+		</mx:FormItem>
+	</mx:Form>
+	<mx:ControlBar horizontalAlign="right" horizontalGap="15">
+		<mx:Button label="Cancel" click="PopUpManager.removePopUp(this)"/>
+		<mx:Button id="btn" label="Add" click=" _addPhrase(event)"/>
+	</mx:ControlBar>
+	
+</mx:Panel>

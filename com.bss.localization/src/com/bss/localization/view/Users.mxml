@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%"
+	height="100%" show="_onShow()">
+
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.events.UserEvent;
+			import com.bss.localization.model.ModelLocator;
+
+			import mx.events.FlexEvent;
+
+			private function _onShow() : void {
+				var userEvent : UserEvent = new UserEvent(UserEvent.GET_CLIENTS) ;
+				var userEvent2 : UserEvent = new UserEvent(UserEvent.GET_ADMINS) ;
+
+				userEvent.dispatch() ;
+				userEvent2.dispatch() ;
+			}
+
+			private function _onEditAdminDG($evt : FlexEvent) : void {
+			}
+
+			private function _onEditClientDG($evt : FlexEvent) : void {
+			}
+		]]>
+	</mx:Script>
+
+	<mx:Panel height="100%" width="60%" textAlign="center"
+		verticalAlign="middle" horizontalAlign="center">
+		<mx:Label text="Admins" fontWeight="bold"/>
+		<mx:DataGrid width="100%" height="50%" dataChange="_onEditAdminDG(event)"
+			dataProvider="{ModelLocator.getInstance().admins}">
+			<mx:columns>
+				<mx:DataGridColumn headerText="Username" dataField="username"/>
+				<mx:DataGridColumn headerText="Password" dataField="password"/>
+				<mx:DataGridColumn headerText="Last Login" dataField="last_login"/>
+			</mx:columns>
+		</mx:DataGrid>
+		<mx:Label text="Clients" fontWeight="bold"/>
+		<mx:DataGrid width="100%" height="50%" dataChange="_onEditClientDG(event)"
+			dataProvider="{ModelLocator.getInstance().clients}">
+			<mx:columns>
+				<mx:DataGridColumn headerText="Username" dataField="username"/>
+				<mx:DataGridColumn headerText="Password" dataField="password"/>
+				<mx:DataGridColumn headerText="Assigned Project"
+					dataField="project_name"/>
+				<mx:DataGridColumn headerText="Last Login" dataField="last_login"/>
+			</mx:columns>
+		</mx:DataGrid>
+		<mx:ControlBar>
+			<mx:Button label="Edit"/>
+			<mx:Button label="Create"/>
+			<mx:Button label="Remove"/>
+		</mx:ControlBar>
+	</mx:Panel>
+
+	<mx:Panel height="100%" width="40%">
+	</mx:Panel>
+</mx:HBox>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

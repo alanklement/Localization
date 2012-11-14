@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" width="800" height="600" title="Label Report" textAlign="center" fontWeight="bold" initialize="_onInitalize()" >
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.events.LabelReportEvent;
+			import com.bss.localization.model.ModelLocator;
+			import com.bss.localization.vo.LabelVO;
+
+			import mx.collections.ArrayCollection;
+			import mx.managers.PopUpManager;
+					
+			[Bindable]
+			private var _model:ModelLocator = ModelLocator.getInstance() ;
+			
+			[Bindable]
+			private var _dataProvdier:ArrayCollection ;
+			
+			private function _onInitalize():void
+			{						
+					var labelID:Array = new Array() ;
+							
+					for each ( var labelVO:LabelVO in _model.returnedLabels ) { labelID.push( labelVO.label_id ) ; }
+					
+					var labelReport:LabelReportEvent =  new LabelReportEvent ( LabelReportEvent.GET_LABEL_REPORT, labelID ) ;
+					labelReport.dispatch() ;
+			}
+			
+			private function copyToClipBoard($evt:MouseEvent):void
+			{
+				var tmpArray:ArrayCollection = _model.longestLabel ;
+				
+               var tmpString:String = "<html><head><title>Data Table</title></head><body><table>";
+               
+               tmpString += "<tr>";
+               tmpString += "<td><b>Language</b></td>";
+               tmpString += "<td><b>Label</b></td>";
+               tmpString += "<td><b>English</b></td>";
+               tmpString += "<td><b>Longest Phrase</b></td>";
+               tmpString += "<td><b>Pixel Length</b></td>";
+               tmpString += "</tr>";
+               
+               for(var i:int = 0; i < tmpArray.length; i++)
+               {
+                   tmpString += "<tr>";
+                   tmpString += "<td>" + tmpArray[i].eng_name + "</td>";
+                   tmpString += "<td>" + tmpArray[i].label + "</td>";
+                   tmpString += "<td>" + tmpArray[i].original + "</td>";
+                   tmpString += "<td>" + tmpArray[i].phrase + "</td>";
+                   tmpString += "<td>" + tmpArray[i].count + "</td>";
+                   tmpString += "</tr>";
+               }
+               
+               tmpString += "</table></body></html>"
+               System.setClipboard(tmpString);
+               
+			}			
+		]]>
+	</mx:Script>
+	<mx:DataGrid id="dataGrid" dataProvider="{ _model.longestLabel }" height="100%" width="100%" textAlign="left" >
+		<mx:columns>
+			<mx:DataGridColumn dataField="eng_name" headerText="Language"/>
+			<mx:DataGridColumn dataField="label" headerText="Label"/>
+			<mx:DataGridColumn dataField="original" headerText="English"/>
+			<mx:DataGridColumn dataField="phrase" headerText="Longest Phrase"/>
+			<mx:DataGridColumn dataField="count" headerText="Pixel Length" width="100"/>
+		</mx:columns>
+	</mx:DataGrid>
+	<mx:HBox>
+	</mx:HBox>
+	<mx:ControlBar horizontalAlign="center">
+		<mx:Button label="Exit" click="PopUpManager.removePopUp ( this )" />
+		<mx:Button label="Copy To Clipboard" click="copyToClipBoard(event)" />
+	</mx:ControlBar>
+</mx:Panel>

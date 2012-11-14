@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" horizontalAlign="center"
+	creationComplete="_init()" render="_init()">
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.vo.PhraseVO ;
+
+			import flash.events.MouseEvent ;
+
+			private var _data : PhraseVO ;
+
+			private function _init($evt : Event = null) : void {
+				if ( !stage.hasEventListener(Event.ENTER_FRAME) ) stage.addEventListener(Event.ENTER_FRAME, _init, false, 0, true) ;
+
+				_data = this.data as PhraseVO ;
+
+				currentCount.setStyle('color', '#0b333c') ;
+
+				if ( _data.phrase_translation != null ) {
+					if ( _data.phrase_translation.length > _data.label_char_limit ) {
+						currentCount.setStyle('color', 'red') ;
+						currentCount.text = _data.phrase_translation.length.toString() ;
+					} else {
+						currentCount.setStyle('color', '#0b333c') ;
+						currentCount.text = _data.phrase_translation.length.toString() ;
+					}
+				} else {
+					currentCount.text = "0" ;
+				}
+			}
+		]]>
+	</mx:Script>
+	<mx:Text id="currentCount" text="{ new String(data.phrase_translation.length) }"/>
+</mx:HBox>

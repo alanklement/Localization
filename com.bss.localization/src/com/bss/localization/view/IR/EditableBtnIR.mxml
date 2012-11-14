@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml" verticalAlign="middle"
+	horizontalAlign="center" render="_onRender()">
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.model.ModelLocator;
+
+			private var _modelLocator : ModelLocator = ModelLocator.getInstance() ;
+
+			private function _onRender() : void {
+				if ( !_modelLocator.gridEditable ) {
+					editPhraseBtn.enabled = false ;
+				} else {
+					editPhraseBtn.enabled = true ;
+				}
+			}
+		]]>
+	</mx:Script>
+
+	<mx:Button id="editPhraseBtn" label="Edit" click="parentDocument.onClick()"/>
+</mx:HBox>

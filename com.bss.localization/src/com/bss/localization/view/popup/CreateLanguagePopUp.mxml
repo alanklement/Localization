@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml"
+	 width="350" height="250" verticalAlign="middle" horizontalAlign="center" layout="vertical">
+	
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.events.LanguageEvent;
+			import com.bss.localization.vo.LanguageVO;
+
+			import mx.managers.PopUpManager;
+						
+			private function _addLangToDB($evt:MouseEvent):void
+			{
+				
+				var langVO:LanguageVO 			= 	new LanguageVO();
+				langVO.language_eng_name 		= 	langNameInput.text;
+				langVO.language_code 			=	langCodeInput.text;
+				langVO.language_local_name		=	localLangName.text;
+				
+				var langEvent:LanguageEvent		=	new LanguageEvent( LanguageEvent.CREATE_LANGUAGE, langVO );
+				
+				langEvent.dispatch(); 				
+				
+				PopUpManager.removePopUp(this)
+	
+			//	remoteOBJ.addLanguageToDB(langNameInput.text, langCodeInput.text, localLangName.text)
+			}
+			
+						
+		]]>
+	</mx:Script>
+	
+	<mx:Label text="Add Language to Database" fontWeight="bold" fontSize="10"/>
+	<mx:Form>
+		<mx:FormItem label="English Name: ">
+			<mx:TextInput id="langNameInput"/>
+		</mx:FormItem>
+		<mx:FormItem label="Language Code: ">
+			<mx:TextInput id="langCodeInput"/>
+		</mx:FormItem>
+		<mx:FormItem label="Local Name: ">
+			<mx:TextInput id="localLangName"/>
+		</mx:FormItem>
+	</mx:Form>
+	<mx:ControlBar verticalAlign="middle" horizontalAlign="center">
+		<mx:Button label="Add" click="_addLangToDB(event)"/>
+		<mx:Button label="Cancel" click="PopUpManager.removePopUp(this)"/>
+	</mx:ControlBar>
+	
+</mx:Panel>

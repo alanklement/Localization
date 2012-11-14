@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml" layout="vertical" width="500" height="350" 
+	title="Add Phrase To Database" textAlign="center" horizontalAlign="center" verticalAlign="middle" initialize="_init()">
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.events.LabelEvent;
+			import com.bss.localization.model.ModelLocator;
+			import com.bss.localization.utils.PromptArrayCollection;
+			import com.bss.localization.vo.LabelVO;
+			import com.bss.localization.vo.ProjectVO;
+
+			import mx.controls.Alert;
+			import mx.managers.PopUpManager;
+			
+			private var _allProjectsPrompt:ProjectVO = new ProjectVO();
+			private var _nonePrompt:ProjectVO = new ProjectVO();
+			
+			private var _modelLocator:ModelLocator = ModelLocator.getInstance();
+			
+			private function _init():void
+			{
+				for(var i:int = 0; i < _modelLocator.allLanguages.length; i++)
+				{
+					if(_modelLocator.allLanguages[i].language_eng_name == "English")
+					{
+						languageID.selectedIndex =  i  ;
+					}
+				}
+								
+				_allProjectsPrompt.project_name = "All Projects"
+				_allProjectsPrompt.project_id 	=  0
+
+				projectID.dataProvider = new PromptArrayCollection([_allProjectsPrompt],_modelLocator.projects);				
+			}
+		
+			private function createLabel($evt:MouseEvent):void
+			{	
+				
+				if(labelInput.text.length == 0 || phraseInput.text.length == 0)
+				{
+					Alert.show("Enter info for XML Label and Phrase")
+					return
+				}
+				
+
+				var labelVO:LabelVO 			= 	new LabelVO();
+					
+				labelVO.label_name 				= 	labelInput.text;
+				labelVO.label_char_limit 		= 	Number(charLimitInput.text) ;
+				labelVO.phrase_original 		= 	escape(phraseInput.text);
+				labelVO.edited_by				=	ModelLocator.getInstance().currentUser;				
+				labelVO.phrase_translation_id	= 	languageID.selectedItem.language_id;
+				
+				if(projectID.selectedIndex == -1)
+				{
+					labelVO.project_id			= 	-1;
+				}
+				else
+				{
+					labelVO.project_id			= 	projectID.selectedItem.project_id;	
+				}
+
+				
+				_modelLocator.itemForConfirmation = labelVO;
+
+				var labelEvent:LabelEvent = new LabelEvent(LabelEvent.CREATE_LABEL, 0, 0,labelVO);
+					
+				labelEvent.dispatch();
+
+				PopUpManager.removePopUp(this)	 	
+					
+			}
+
+			private function comboBox($evt:MouseEvent):void
+			{
+				languageID.enabled = true
+			}
+			
+			private function _check():void
+			{
+				if(projectID.selectedItem.project_id == 0)
+				{
+					Alert.show("Adding a Label to multiple projects is not yet implemented");
+					projectID.selectedIndex = -1
+				}
+			}
+			
+		]]>
+	</mx:Script>	
+	
+	<mx:Form textAlign="left" height="100%" width="100%">
+		<mx:FormItem label="XML Label:">
+			<mx:TextInput id="labelInput"/>
+		</mx:FormItem>
+		<mx:FormItem label="Character Limit:">
+			<mx:TextInput id="charLimitInput"/>
+		</mx:FormItem>
+		<mx:FormItem label="Current Count:">
+			<mx:Label text="{ phraseInput.text.length }"/>
+		</mx:FormItem>
+		<mx:FormItem label="Phrase:" height="50%" width="100%">
+			<mx:TextArea id="phraseInput" width="100%" height="100%"/>
+		</mx:FormItem>
+		<mx:FormItem label="Original: ">
+			<mx:HBox>
+				<mx:ComboBox id="languageID" prompt="Language..." labelField="language_eng_name" dataProvider="{ModelLocator.getInstance().allLanguages}"/>
+			</mx:HBox>
+		</mx:FormItem>
+		<mx:FormItem label="Add To Project: ">
+				<mx:ComboBox id="projectID" labelField="project_name" dataProvider="{ModelLocator.getInstance().projects}" prompt="Choose Project..." />   <!--change="_check()"-->
+		</mx:FormItem>
+	</mx:Form>
+	
+	<mx:ControlBar verticalAlign="middle" horizontalAlign="center"  horizontalGap="20">
+			
+			<mx:Button label="Create" click="createLabel(event)"/>
+			<mx:Button label="Cancel" click="PopUpManager.removePopUp(this)" />
+		</mx:ControlBar>
+		
+</mx:Panel>

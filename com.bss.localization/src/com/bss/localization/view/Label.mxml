@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" width="100%" height="100%" creationComplete="_onCreationComplete()" show="_onProjectCBChange()">
+
+		<mx:Script>
+			<![CDATA[
+				import mx.events.CloseEvent ;
+				import mx.binding.utils.ChangeWatcher;
+				import mx.collections.ArrayCollection;
+				import mx.core.IFlexDisplayObject;
+				import mx.controls.Alert;
+				import mx.events.PropertyChangeEvent;
+				import mx.managers.PopUpManager;
+				
+				import com.bss.localization.model.ModelLocator;
+				import com.bss.localization.events.ProjectEvent;
+				import com.bss.localization.events.LabelEvent;
+				import com.bss.localization.vo.LabelVO;
+				import com.bss.localization.vo.LanguageVO;
+				import com.bss.localization.vo.ProjectVO;
+				import com.bss.localization.utils.PromptArrayCollection;
+				import com.bss.localization.view.popup.CreateLabelPopUp;
+				import com.bss.localization.view.popup.EditLabelPopUp;
+				import com.bss.localization.view.popup.LabelReport ;
+			
+				private var _modelLocator								: ModelLocator = ModelLocator.getInstance();
+				private var _allProjectPrompt							: ProjectVO = new ProjectVO() ;
+				private var _unAssignedPrompt							: ProjectVO = new ProjectVO() ;
+				private var _allLabelsPrompt							: ProjectVO = new ProjectVO() ;
+				private var _allLanguagePrompt							: LanguageVO = new LanguageVO() ;				
+				
+				private function _onCreationComplete():void
+				{					
+					// ak: Prepare then insert custom items into Combo Boxes					
+					_allProjectPrompt.project_name = "All Projects" ;
+					_allProjectPrompt.project_id =  0 ;
+
+					_allLabelsPrompt.project_name = "All Labels" ;
+					_allLabelsPrompt.project_id =  -2 ;
+					
+					_unAssignedPrompt.project_name = "Unassigned" ;
+					_unAssignedPrompt.project_id =  -1 ;
+					
+					_allLanguagePrompt.language_eng_name = "All Languages" ;
+					_allLanguagePrompt.language_id = 0 ;
+
+					projectCB.dataProvider = new PromptArrayCollection ( [ _allLabelsPrompt, _allProjectPrompt, _unAssignedPrompt ], _modelLocator.projects ) ;														
+				}
+
+				private function _onSelectLabel( $evt:Event ):void
+				{					
+					var selectedLabel:LabelVO = LabelVO ( DataGrid ( $evt.target ).selectedItem ) 
+					_modelLocator.selectedLabel = selectedLabel ;					
+										
+					var labelEvent:LabelEvent = new LabelEvent( LabelEvent.GET_LABEL_PROJECT, 0, 0, LabelVO( selectedLabel )) ;
+					labelEvent.dispatch() ;
+					
+					var labelEvent2:LabelEvent = new LabelEvent( LabelEvent.GET_LABEL_PHRASE, 0, 0, LabelVO( selectedLabel )) ;
+					labelEvent2.dispatch() ;
+				}
+
+				private function _onProjectCBChange():void
+				{	
+					 if ( 	projectCB.selectedItem != null )
+					 {
+						_modelLocator.currentProjectSearch = projectCB.selectedItem.project_id;
+																
+						if(projectCB.selectedItem.project_id == 0)
+						{
+							_modelLocator.projectLanguageSearch = _modelLocator.allLanguages;
+							return ;
+						}
+						else if ( projectCB.selectedItem.project_id == -1 )
+						{
+							_modelLocator.projectLanguageSearch = new ArrayCollection([_allLanguagePrompt]);	
+							return ;	
+						}
+						else if ( projectCB.selectedItem.project_id == -2 )
+						{
+							_modelLocator.projectLanguageSearch = new ArrayCollection([_allLanguagePrompt]);	
+							return ;						
+						}
+						else
+						{
+							_modelLocator.selectedProject = ProjectVO(projectCB.selectedItem);
+					
+							var projectEvent:ProjectEvent = new ProjectEvent(ProjectEvent.GET_PROJECT_LANGUAGE, _modelLocator.selectedProject);
+							projectEvent.dispatch();
+						}						
+					 }			
+				}
+				
+				private function _searchLabels($evt:MouseEvent):void
+				{	
+					if ( projectCB.selectedItem != null )
+					{
+						// reset Data Grid
+						_modelLocator.selectedLabel = null ;
+						_modelLocator.returnedLabelPhrase = null ;
+						_modelLocator.returnedLabelProject = null ;
+						
+						// search
+						if(searchLabelString.text.length == 0)
+						{
+							var labelEvent:LabelEvent = new LabelEvent(LabelEvent.GET_ALL_LABEL, projectCB.selectedItem.project_id, languagesCB.selectedItem.language_id) ;
+							labelEvent.dispatch() ;
+							
+							_modelLocator.lastLabelQuery = labelEvent ;
+						}
+						else
+						{
+							var labelEvent2:LabelEvent = new LabelEvent(LabelEvent.GET_LABEL_BY_STRING, projectCB.selectedItem.project_id, languagesCB.selectedItem.language_id, null, searchLabelString.text) ;
+							labelEvent2.dispatch() ;
+							
+							_modelLocator.lastLabelQuery = labelEvent2 ;
+						}
+					}
+					else
+					{
+						Alert.show("Please Choose A Project to Get Started.") ;
+						return ;
+					}						
+				}
+				
+				private function _addLabelToProject():void
+				{
+					if( labelsDG.selectedItem.label_id == null )
+					{
+						Alert.show( "Please Select a Label to Add" ) ;
+						return ;
+					}
+					else if ( projectCBAdd.selectedItem == null)
+					{
+						Alert.show( "Please Select a Project To Add Label" ) ;
+						return ;
+					}
+					
+					if ( labelsDG.selectedItems.length == 1 )
+					{	
+						_addOneLabelToOneProject(labelsDG.selectedItems[0]);
+					}
+					else if ( labelsDG.selectedItems.length > 1 )
+					{
+						// This is not implemented.  Reaseach making a conditional query so duplicate rows are not entered in DB
+						//_addManyLabelToOneProject();
+						//	Alert.show( 'You are about to assign multiple labels to project\n\n' + projectCBAdd.selectedItem.project_name + '\n\nContnue?', null, Alert.YES|Alert.NO ) ;
+						//Alert.show( 'Are you sure you want to delete this Label?', null, Alert.YES|Alert.NO, this,_onConfirmDeleteLabel ) ;
+					}
+				}
+				
+				private function _addOneLabelToOneProject($labelVO:LabelVO):void
+				{
+						_modelLocator.selectedLabel = $labelVO ;		
+						_modelLocator.selectedProject = projectCBAdd.selectedItem as ProjectVO;
+					
+						var labelVO:LabelVO = 	new LabelVO() ;
+						labelVO.project_id 	= 	projectCBAdd.selectedItem.project_id ;
+						labelVO.label_id	= 	_modelLocator.selectedLabel.label_id ;
+						
+						var labelEvent3:LabelEvent = new LabelEvent ( LabelEvent.ADD_LABEL_TO_PROJECT, 0, 0, labelVO ) ;
+						labelEvent3.dispatch() ;
+						_modelLocator.removeFromDGIndex		= labelsDG.selectedIndex ;
+						_modelLocator.itemForConfirmation 	= projectCBAdd.selectedItem ;
+						
+						// ak: The user has just moved a lable from unassigned  - hence  it will be removed from current view
+						if ( projectCB.selectedItem.project_id == -1 )
+						{
+							_modelLocator.returnedLabelProject = null ;
+							_modelLocator.returnedLabelPhrase = null ;
+							_modelLocator.selectedLabel = null ;
+
+							_modelLocator.removeFromView = true ;
+						}
+						else if ( projectCB.selectedItem.project_id != -1 )
+						{	
+							_modelLocator.removeFromView = false ;
+							var labelEvent:LabelEvent = new LabelEvent(LabelEvent.GET_LABEL_PROJECT, 0, 0, LabelVO(_modelLocator.selectedLabel)) ;
+							labelEvent.dispatch() ;
+						}
+					
+					return ;
+				}
+				
+				private function _addManyLabelToOneProject():void
+				{
+					var labels:Array = labelsDG.selectedItems ;
+					
+					for each ( var label:LabelVO in labels )
+					{
+						_addOneLabelToOneProject(label) ;
+					}					
+				}
+				
+				private function _removeLabelFromProject():void
+				{
+					if ( projectCBRemove.selectedItem == null )
+					{
+						Alert.show("Please Choose A Project to Remove Label From") ;
+						return ;
+					}
+					else
+					{
+						var labelVO:LabelVO 					= 	new LabelVO() ;
+						labelVO.project_id 						= 	projectCBRemove.selectedItem.project_id ;
+						labelVO.label_id						= 	_modelLocator.selectedLabel.label_id ;
+						
+						var labelEvent4:LabelEvent 				= 	new LabelEvent ( LabelEvent.REMOVE_LABEL_FROM_PROJECT, 0, 0, labelVO ) ;
+						labelEvent4.dispatch() ;
+
+						var labelEvent:LabelEvent = new LabelEvent(LabelEvent.GET_LABEL_PROJECT, 0, 0, LabelVO(_modelLocator.selectedLabel)) ;
+						labelEvent.dispatch() ;
+						
+						trace ( projectCB.selectedItem.project_id ) ;
+						trace ( projectCBRemove.selectedItem.project_id ) ;
+						
+						if ( projectCB.selectedItem.project_id == projectCBRemove.selectedItem.project_id || projectCB.selectedItem.project_id == -1 )
+						{
+							// labelsDG.removeItemAt( labelsDG.selectedIndex ) and other variations of this seem to turn the entire Data Grid blank and it never is filled again
+							// even after another query
+							//"Dear Flex, 
+							// why do you suck?"
+							// this is a workaround for what should be much simpler
+							
+							_modelLocator.removeFromView = true ;
+							_modelLocator.removeFromDGIndex = labelsDG.selectedIndex ;	
+						}
+						else
+						{
+							_modelLocator.removeFromView = false ;
+							_modelLocator.removeFromDGIndex = NaN ;	
+						}
+					}
+				}
+				
+				private function _onConfirmDeleteLabel( $evt:CloseEvent ):void
+				{
+					if( $evt.detail == Alert.YES )
+					{
+						_modelLocator.removeFromDGIndex			=	labelsDG.selectedIndex ;
+					
+						var labelEvent5:LabelEvent = new LabelEvent ( LabelEvent.DELETE_LABEL, labelsDG.selectedItem.label_id, 0 ) ;
+						labelEvent5.dispatch() ;
+						
+						_modelLocator.selectedLabel = null ;
+						_modelLocator.returnedLabelPhrase = null ;
+						_modelLocator.returnedLabelProject = null ; 			
+					}
+				}
+			]]>
+		</mx:Script>
+
+		<mx:HBox height="5%" width="100%" horizontalAlign="center" verticalAlign="middle"
+			horizontalGap="20">
+				<mx:Text text="Project:" fontSize="13"/>
+				<mx:ComboBox id="projectCB" labelField="project_name" change="_onProjectCBChange()"  prompt="Project..."/>   
+				<mx:Text text="Language:" fontSize="13"/>
+				<mx:ComboBox id="languagesCB" width="150" labelField="language_eng_name" dataProvider="{ModelLocator.getInstance().projectLanguageSearch}" />
+				<mx:TextInput id="searchLabelString" width="125"/>
+				<mx:Button id="searchBtn" label="Lookup"  click="_searchLabels( event )"/>    													
+		</mx:HBox>
+
+		<mx:HBox height="95%" width="100%">
+				<mx:Panel height="100%" width="50%" textAlign="center" title="{ ModelLocator.getInstance().returnedLabels.length } Labels Displayed">
+					<mx:DataGrid height="100%" width="100%" id="labelsDG" textAlign="left" dataProvider="{ ModelLocator.getInstance().returnedLabels }" change="_onSelectLabel( event )" selectable="true"   >  <!--allowMultipleSelection="true"-->
+						<mx:columns>
+							<mx:DataGridColumn headerText="Label" 				dataField="label_name"/>
+							<mx:DataGridColumn headerText="Limit"				dataField="label_char_limit" width="75"/>
+							<mx:DataGridColumn headerText="Original Phrase"		dataField="phrase_original"/>
+						</mx:columns>
+					</mx:DataGrid>
+					<mx:ControlBar>
+						<mx:Button label="Create Label" click="var addLabelPopup:IFlexDisplayObject = PopUpManager.createPopUp( this,CreateLabelPopUp,true ); PopUpManager.centerPopUp( addLabelPopup )"/>
+						<mx:Button label="Delete Label" click=" var confirmDelete:Alert = Alert.show( 'Are you sure you want to delete this Label?', null, Alert.YES|Alert.NO, this,_onConfirmDeleteLabel )"/>
+						<mx:Button label="Phrase Length Report"  click="var report:IFlexDisplayObject = PopUpManager.createPopUp( this,  LabelReport, true ); PopUpManager.centerPopUp( report ) ;"/>						
+					</mx:ControlBar>
+				</mx:Panel>
+
+				<mx:VBox height="100%" width="50%">
+						<mx:Panel height="100%" width="100%" title="Details" textAlign="center">
+							<mx:Form width="100%" height="33%" textAlign="left">
+								<mx:FormItem label="XML Label: ">
+									<mx:Label id="labelInput" text="{ ModelLocator.getInstance().selectedLabel.label_name }"/>
+								</mx:FormItem>
+								<mx:FormItem label="Phrase: " width="100%" height="100%" >
+									<mx:TextArea id="phraseInput" width="100%" height="100%" borderThickness="0" text="{ ModelLocator.getInstance().selectedLabel.phrase_original }" editable="false" selectable="false"/>
+								</mx:FormItem>
+								<mx:FormItem label="Created: ">
+									<mx:Label id="created" text="{ ModelLocator.getInstance().selectedLabel.label_created }"/>
+								</mx:FormItem>
+								<mx:FormItem label="Edited: ">
+									<mx:Label id="edited" text="{ ModelLocator.getInstance().selectedLabel.label_edited }"/>
+								</mx:FormItem>
+								<mx:FormItem   label="Character Limit: ">
+									<mx:Label id="charLimitInput" text="{ ModelLocator.getInstance().selectedLabel.label_char_limit }" />
+								</mx:FormItem>
+							</mx:Form>
+							<mx:HBox paddingLeft="18" paddingBottom="5">
+								<mx:Button id="editLabel" label="Edit" click=" if( _modelLocator.selectedLabel == null ){ Alert.show('Please Choose a Label to Edit') }; var popUpEditLabel:IFlexDisplayObject = PopUpManager.createPopUp( this,EditLabelPopUp,true ); PopUpManager.centerPopUp( popUpEditLabel )"/>
+							</mx:HBox>
+							
+							<mx:DataGrid id="labelProjectsDG" height="33%" width="100%" textAlign="left" dataProvider="{ ModelLocator.getInstance().returnedLabelProject }" >
+								<mx:columns>
+									<mx:DataGridColumn headerText="Code" dataField="project_code" width="100"/>
+									<mx:DataGridColumn headerText="Project" dataField="project_name"/>
+								</mx:columns>
+							</mx:DataGrid>
+							
+							<mx:DataGrid id="phrasesDG2" height="33%" width="100%" textAlign="left" dataProvider="{ ModelLocator.getInstance().returnedLabelPhrase }" >
+								<mx:columns>
+									<mx:DataGridColumn id="langNameDGC" headerText="Language" dataField="lang_eng_name" width="125" />
+									<mx:DataGridColumn headerText="Translation" id="translationColumn" itemRenderer="com.bss.localization.view.IR.LanguageIR">
+									</mx:DataGridColumn>
+									<mx:DataGridColumn headerText="Edited" dataField="phrase_edited"/>
+								</mx:columns>
+							</mx:DataGrid>				
+						</mx:Panel>
+						
+							<mx:HBox horizontalGap="50">
+								<mx:ComboBox id="projectCBAdd" labelField="project_name" prompt="Project..." enabled="{ModelLocator.getInstance().addLabelToProjectCBEnabled}" dataProvider="{ ModelLocator.getInstance().addLabelToProjectCB_DP }"/>
+								<mx:Button id="addToProjectBtn" label="Add" click="_addLabelToProject()" enabled="{ModelLocator.getInstance().addLabelToProjectCBEnabled}"/>
+							</mx:HBox>
+							<mx:HBox horizontalGap="50">
+								<mx:ComboBox id="projectCBRemove" labelField="project_name" prompt="Project..." enabled="{ModelLocator.getInstance().removeLabelFromProjectCBEnabled}" dataProvider="{ ModelLocator.getInstance().returnedLabelProject }" />
+								<mx:Button id="removeFromProjectBtn" label="Remove" click="_removeLabelFromProject()" enabled="{ModelLocator.getInstance().removeLabelFromProjectCBEnabled}"/>
+							</mx:HBox>							
+							<mx:HBox width="100%" horizontalAlign="right" paddingRight="5">
+							<mx:Button label="?" id="infoBtn"/>
+							</mx:HBox>
+				</mx:VBox>
+		</mx:HBox>		
+</mx:VBox>

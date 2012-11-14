@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" height="100%"
+	width="100%" verticalAlign="middle" horizontalAlign="center"
+	creationComplete="_onCreationComplete()">
+
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.events.LoginEvent;
+			import com.bss.localization.model.ModelLocator;
+			import com.bss.localization.vo.LoginVO;
+
+			private function _onCreationComplete() : void {
+				this.addEventListener(KeyboardEvent.KEY_DOWN, loginKeyboard) ;
+			}
+
+			private function loginKeyboard($evt : KeyboardEvent) : void {
+				if ( $evt.keyCode == 13 ) {
+					var newVO : LoginVO = new LoginVO() ;
+					newVO.username = username.text ;
+					newVO.password = password.text ;
+
+					ModelLocator.getInstance().currentUser = username.text ;
+					var loginEvent : LoginEvent = new LoginEvent(LoginEvent.LOGIN, newVO) ;
+
+					loginEvent.dispatch() ;
+				} else {
+					return ;
+				}
+			}
+
+			private function login() : void {
+				var newVO : LoginVO = new LoginVO() ;
+				newVO.username = username.text ;
+				newVO.password = password.text ;
+
+				ModelLocator.getInstance().currentUser = username.text ;
+				var loginEvent : LoginEvent = new LoginEvent(LoginEvent.LOGIN, newVO) ;
+
+				loginEvent.dispatch() ;
+			}
+		]]>
+	</mx:Script>
+
+	<mx:Panel height="200" width="450" verticalAlign="middle"
+		horizontalAlign="center" title="BIG SPACESHIP LOCALIZATION"
+		textAlign="center">
+		<mx:Label text="Username"/>
+		<mx:TextInput id="username"/>
+		<mx:Label text="Password"/>
+		<mx:TextInput id="password" displayAsPassword="true"/>
+
+		<mx:ControlBar verticalAlign="middle" horizontalAlign="center">
+			<mx:Button id="loginBtn" label="Login" click="login()"/>
+		</mx:ControlBar>
+	</mx:Panel>
+
+</mx:VBox>
+

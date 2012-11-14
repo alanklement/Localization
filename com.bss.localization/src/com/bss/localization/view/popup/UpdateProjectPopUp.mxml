@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Panel xmlns:mx="http://www.adobe.com/2006/mxml"
+	 width="450" height="300" title="Add Project">
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.events.ProjectEvent;
+			import com.bss.localization.model.ModelLocator;
+			import com.bss.localization.vo.ProjectVO;
+
+			import mx.managers.PopUpManager;
+			
+			[Bindable]
+			private var _selectedProject:ProjectVO = ModelLocator.getInstance().selectedProject;
+			
+			private function editProject( $evt:MouseEvent) :void
+			{	
+				_selectedProject.project_name 	= 	projectName.text;
+				_selectedProject.project_code 	= 	projectCode.text;
+				_selectedProject.project_notes 	= 	projectNotes.text;
+				_selectedProject.edited_by		=	ModelLocator.getInstance().currentUser;
+				
+				var projectEvent:ProjectEvent = new ProjectEvent(ProjectEvent.UPDATE_PROJECT, _selectedProject); 
+				
+				projectEvent.dispatch();
+				PopUpManager.removePopUp(this)
+			}
+		]]>
+	</mx:Script>
+
+		<mx:Form id="addProjectForm" width="100%" height="100%">
+			<mx:FormItem label="Project Name:">
+				<mx:TextInput id="projectName" text="{ _selectedProject.project_name }"/>
+			</mx:FormItem>
+			<mx:FormItem label="Project Code:">
+				<mx:TextInput id="projectCode" text="{ _selectedProject.project_code }"/>
+			</mx:FormItem>
+			<mx:FormItem label="Notes:" width="100%" height="100%">
+				<mx:TextArea id="projectNotes" width="100%" height="100%" text="{ _selectedProject.project_notes }"/>
+			</mx:FormItem>
+		</mx:Form>
+		
+		<mx:ControlBar verticalAlign="middle" horizontalAlign="center"  horizontalGap="20">
+			<mx:Button label="Update" click="editProject( event )"/>
+			<mx:Button label="Cancel" click="PopUpManager.removePopUp( this )"/>
+		</mx:ControlBar>
+</mx:Panel>

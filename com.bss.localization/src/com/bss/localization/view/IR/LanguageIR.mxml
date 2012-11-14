@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:HBox xmlns:mx="http://www.adobe.com/2006/mxml"
+	horizontalScrollPolicy="off" render="_setText()">
+	<mx:Script>
+		<![CDATA[
+			import com.bss.localization.vo.PhraseVO ;
+
+			private function _setText() : void {
+				translationTxt.text = PhraseVO(data).phrase_translation ;
+			}
+		]]>
+	</mx:Script>
+
+	<mx:Label id="translationTxt" selectable="true" paddingLeft="5"
+		truncateToFit="false"/>
+</mx:HBox>
